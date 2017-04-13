@@ -1,0 +1,5 @@
+.clang
+compile_commands.json
+var/
+build/
+*.so
