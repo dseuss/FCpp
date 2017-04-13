@@ -27,7 +27,8 @@ ext_modules = [
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
-            get_pybind_include(user=True)
+            get_pybind_include(user=True),
+            '/usr/local/include/eigen3/'
         ],
         language='c++'
     ),

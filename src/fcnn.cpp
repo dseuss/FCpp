@@ -1,14 +1,13 @@
 #include <assert.h>
 #include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
+#include <pybind11/eigen.h>
 #include <pybind11/stl.h>
-#include <armadillo>
+#include <Eigen/Dense>
 
 #include "activation.hpp"
 
 
 namespace py = pybind11;
-namespace am = arma;
 using namespace pybind11::literals;
 using namespace std;
 
@@ -18,8 +17,8 @@ typedef vector<size_t> shape_t;
 
 typedef struct NNLayer {
     ActivationFunction activation;
-    am::Mat<double> w;
-    am::Col<double> b;
+    Eigen::MatrixXd w;
+    Eigen::VectorXd b;
 } NNLayer;
 
 
@@ -42,15 +41,15 @@ public:
 
         // Initialize the weights with zeros
         for (size_t n = 0; n < n_layers; ++n) {
-            layers[n].w.zeros(shapes[n + 1], shapes[n]);
-            layers[n].b.zeros(shapes[n + 1]);
+            layers[n].w = Eigen::MatrixXd::Zero(shapes[n + 1], shapes[n]);
+            layers[n].b = Eigen::VectorXd::Zero(shapes[n + 1]);
             layers[n].activation = sigmoid;
         }
     }
 
 
-    size_t n_inputs() const { return layers[0].w.n_cols; }
-    size_t n_outputs() const { return layers[layers.size() - 1].w.n_rows; }
+    size_t n_inputs() const { return layers[0].w.cols(); }
+    size_t n_outputs() const { return layers[layers.size() - 1].w.rows(); }
     size_t hlayers() const { return layers.size() - 1; }
 
 
@@ -58,7 +57,7 @@ public:
     {
         shape_t result (layers.size());
         for (size_t i = 0; i < layers.size(); ++i) {
-            result[i] = layers[i].w.n_rows;
+            result[i] = layers[i].w.rows();
         }
         return result;
     }
