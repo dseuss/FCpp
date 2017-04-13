@@ -1,9 +1,11 @@
 import fcnn
+import pytest as pt
 
 
-def test_init():
-    a = fcnn.FCNN(5, (10, 5, 3))
-    assert a.hlayers == 2
+@pt.mark.parametrize('neurons', [(1, ), (10, 5, 3, 10)])
+def test_init(neurons):
+    a = fcnn.FCNN(5, neurons)
+    assert a.hlayers == len(neurons) - 1
     assert a.n_inputs == 5
-    assert a.n_outputs == 3
-    assert tuple(a.neurons) == (10, 5, 3)
+    assert a.n_outputs == neurons[-1]
+    assert tuple(a.neurons) == neurons
