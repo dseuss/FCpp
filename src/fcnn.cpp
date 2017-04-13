@@ -3,21 +3,31 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 #include <armadillo>
-#include "interface.hpp"
+
+#include "activation.hpp"
+
 
 namespace py = pybind11;
 namespace am = arma;
-
 using namespace pybind11::literals;
 using namespace std;
 
+
 typedef vector<size_t> shape_t;
+
+
+typedef struct NNLayer {
+    ActivationFunction activation;
+    am::Mat<double> w;
+    am::Col<double> b;
+} NNLayer;
+
 
 class FCNN {
 public:
     // Fully connected neural network
     FCNN(size_t n_inputs, const shape_t neurons)
-    : weights(neurons.size())
+    : layers(neurons.size())
     {
         const auto n_layers = neurons.size();
         // TODO Proper error handling
@@ -25,34 +35,37 @@ public:
         assert(n_layers >= 2);
         assert(*neurons.end() == 1);
 
-        // Initialize the weights with zeros
-        // +1 for the number of columns to accomodate biases
-        weights[0].zeros(neurons[0], n_inputs + 1);
-        for (auto n = 1; n < n_layers; ++n) {
-            weights[n].zeros(neurons[n], neurons[n - 1] + 1);
-        }
+        // Create temporary shapes array to unify loop below
+        size_t shapes[neurons.size() + 1];
+        shapes[0] = n_inputs;
+        copy(neurons.begin(), neurons.end(), shapes + 1);
 
+        // Initialize the weights with zeros
+        for (size_t n = 0; n < n_layers; ++n) {
+            layers[n].w.zeros(shapes[n + 1], shapes[n]);
+            layers[n].b.zeros(shapes[n + 1]);
+            layers[n].activation = sigmoid;
+        }
     }
 
 
-    size_t n_inputs() const { return weights[0].n_cols - 1; }
-    size_t n_outputs() const { return weights[weights.size() - 1].n_rows; }
-    size_t hlayers() const { return weights.size() - 1; }
+    size_t n_inputs() const { return layers[0].w.n_cols; }
+    size_t n_outputs() const { return layers[layers.size() - 1].w.n_rows; }
+    size_t hlayers() const { return layers.size() - 1; }
 
 
     shape_t neurons () const
     {
-        shape_t result (weights.size());
-        for (auto i = 0; i < weights.size(); ++i) {
-            result[i] = weights[i].n_rows;
+        shape_t result (layers.size());
+        for (size_t i = 0; i < layers.size(); ++i) {
+            result[i] = layers[i].w.n_rows;
         }
         return result;
     }
 
 
 private:
-    vector<am::Mat<double>> weights;
-
+    vector<NNLayer> layers;
 };
 
 
