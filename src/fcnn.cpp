@@ -26,15 +26,16 @@ public:
         assert(*neurons.end() == 1);
 
         // Initialize the weights with zeros
-        weights[0].zeros(neurons[0], n_inputs);
+        // +1 for the number of columns to accomodate biases
+        weights[0].zeros(neurons[0], n_inputs + 1);
         for (auto n = 1; n < n_layers; ++n) {
-            weights[n].zeros(neurons[n], neurons[n - 1]);
+            weights[n].zeros(neurons[n], neurons[n - 1] + 1);
         }
 
     }
 
 
-    size_t n_inputs() const { return weights[0].n_cols; }
+    size_t n_inputs() const { return weights[0].n_cols - 1; }
     size_t n_outputs() const { return weights[weights.size() - 1].n_rows; }
     size_t hlayers() const { return weights.size() - 1; }
 
