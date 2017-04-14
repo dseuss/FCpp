@@ -75,8 +75,20 @@ def test_set_weights_exception():
 
 
 @pt.mark.parametrize('shape', TEST_SHAPES)
+def test_random_initialization(shape):
+    nn = FCNN(shape[0], shape[1:])
+    for i in range(len(shape) - 1):
+        assert_almost_equal(np.linalg.norm(nn.get_weights(i)), 0)
+
+    nn.init_random()
+    for i in range(len(shape) - 1):
+        assert np.linalg.norm(nn.get_weights(i)) > .5
+
+
+@pt.mark.parametrize('shape', TEST_SHAPES)
 def test_predict(shape, rgen):
     nn = FCNN(shape[0], shape[1:])
+    nn.init_random()
     weights = [nn.get_weights(i) for i in range(len(shape) - 1)]
 
     x_in = rgen.randn(shape[0])

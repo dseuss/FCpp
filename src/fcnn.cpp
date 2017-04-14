@@ -66,6 +66,17 @@ public:
     }
 
 
+    // comments
+    void init_random(long seed)
+    {
+        srand(seed);
+        for (auto& layer: layers) {
+            layer.w = ematrix_t::Random(layer.w.rows(), layer.w.cols());
+        }
+
+    }
+
+
     ematrix_t &get_weights(const size_t layer)
     {
         return layers[layer].w;
@@ -109,6 +120,7 @@ PYBIND11_PLUGIN(fcnn)
         .def_property_readonly("n_outputs", &FCNN::n_outputs)
         .def_property_readonly("hlayers", &FCNN::hlayers)
         .def_property_readonly("neurons", &FCNN::neurons)
+        .def("init_random", &FCNN::init_random, "seed"_a=0)
         .def("get_weights", &FCNN::get_weights, "layer"_a)
         .def("set_weights", &FCNN::set_weights, "layer"_a, "weight"_a)
         .def("predict", &FCNN::predict, "x_in"_a);
