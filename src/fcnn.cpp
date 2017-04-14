@@ -16,11 +16,13 @@ typedef vector<size_t> shape_t;
 typedef Eigen::Matrix<double,
                       Eigen::Dynamic,
                       Eigen::Dynamic,
-                      Eigen::RowMajor> matrix_t;
+                      Eigen::RowMajor> ematrix_t;
+typedef Eigen::VectorXd evector_t;
+
 
 typedef struct NNLayer {
     ActivationFunction activation;
-    matrix_t w;
+    ematrix_t w;
 } NNLayer;
 
 
@@ -43,7 +45,7 @@ public:
         // Initialize the weights with zeros
         for (size_t n = 0; n < n_layers; ++n) {
             // +1 to accomodate biases
-            layers[n].w = matrix_t::Zero(shapes[n + 1], shapes[n] + 1);
+            layers[n].w = ematrix_t::Zero(shapes[n + 1], shapes[n] + 1);
             layers[n].activation = sigmoid;
         }
     }
@@ -64,13 +66,13 @@ public:
     }
 
 
-    matrix_t &get_weights(const size_t layer)
+    ematrix_t &get_weights(const size_t layer)
     {
         return layers[layer].w;
     }
 
 
-    void set_weights(const size_t layer, Eigen::Ref<matrix_t> weight)
+    void set_weights(const size_t layer, Eigen::Ref<ematrix_t> weight)
     {
         if((weight.rows() != layers[layer].w.rows()) ||
            (weight.cols() != layers[layer].w.cols())) {
@@ -80,7 +82,16 @@ public:
     }
 
 
-
+    evector_t predict(Eigen::Ref<evector_t> x_in)
+    {
+        evector_t x_current = x_in;
+        for (auto const& layer: layers) {
+            auto w = layer.w.block(0, 1, layer.w.rows(), layer.w.cols() - 1);
+            auto b = layer.w.col(0);
+            x_current = (w * x_current + b).unaryExpr(layer.activation.f);
+        }
+        return x_current;
+    }
 
 
 private:
@@ -99,7 +110,8 @@ PYBIND11_PLUGIN(fcnn)
         .def_property_readonly("hlayers", &FCNN::hlayers)
         .def_property_readonly("neurons", &FCNN::neurons)
         .def("get_weights", &FCNN::get_weights, "layer"_a)
-        .def("set_weights", &FCNN::set_weights, "layer"_a, "weight"_a);
+        .def("set_weights", &FCNN::set_weights, "layer"_a, "weight"_a)
+        .def("predict", &FCNN::predict, "x_in"_a);
 
     return m.ptr();
 }
