@@ -78,9 +78,14 @@ public:
     }
 
 
-    ematrix_t &get_weights(const size_t layer)
+    // FIXME Check memory managment from pybind
+    vector<ematrix_t> &get_weights() const
     {
-        return layers[layer].w;
+        auto result = new vector<ematrix_t>(layers.size());
+        for (size_t i = 0; i < layers.size(); ++i) {
+            (*result)[i] = layers[i].w;
+        }
+        return *result;
     }
 
 
@@ -123,7 +128,8 @@ PYBIND11_PLUGIN(fcclass)
         .def_property_readonly("hidden_layers", &FcClassifier::hidden_layers)
         .def_property_readonly("hidden_units", &FcClassifier::hidden_units)
         .def("init_random", &FcClassifier::init_random, "seed"_a=0)
-        .def("get_weights", &FcClassifier::get_weights, "layer"_a)
+        .def("get_weights", &FcClassifier::get_weights,
+             py::return_value_policy::copy)
         .def("set_weights", &FcClassifier::set_weights, "layer"_a, "weight"_a)
         .def("predict", &FcClassifier::predict, "x_in"_a);
 

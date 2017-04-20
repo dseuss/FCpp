@@ -1,20 +1,39 @@
+import itertools as it
+
 import autograd.numpy as np
 import pytest as pt
-from numpy.testing import assert_almost_equal, assert_array_equal
+from autograd import grad
+from numpy.testing import (assert_almost_equal, assert_array_equal,
+                           assert_array_almost_equal)
 
 from fcclass import FcClassifier
-
 
 TEST_HIDDEN_UNITS = [tuple(), (5,), (5, 10, 3, 4)]
 TEST_INPUT_UNITS = [1, 10, 5]
 
 
-def fcnn_predict(x_in, weights, activation):
+###############################################################################
+#                              Helper functions                               #
+###############################################################################
+
+def fcnn_predict(x_in, weights, activations):
     x_current = x_in
-    for w in weights:
-        x_current = activation(np.dot(w[:, 1:], x_current) + w[:, 0])
+    for w, f in zip(weights, activations):
+        x_current = f(np.dot(w[:, 1:], x_current) + w[:, 0])
     return x_current
 
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(x))
+
+
+def cross_entropy(p, q):
+    return - p * np.log(q)
+
+
+###############################################################################
+#                              Testing functions                              #
+###############################################################################
 
 @pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
 @pt.mark.parametrize('hidden_units', TEST_HIDDEN_UNITS)
@@ -28,14 +47,15 @@ def test_init(input_units, hidden_units):
 def test_view_set_weights():
     shape = (5, 8, 1)
     nn = FcClassifier(shape[0], shape[1:-1])
+    weights = nn.get_weights()
 
     for i in range(len(shape) - 1):
         # +1 Due to implicit weights
-        assert nn.get_weights(i).shape == (shape[i + 1], shape[i] + 1)
+        assert weights[i].shape == (shape[i + 1], shape[i] + 1)
 
     new_weight = np.random.randn(shape[1], shape[0] + 1)
     nn.set_weights(0, new_weight)
-    assert_array_equal(new_weight, nn.get_weights(0))
+    assert_array_equal(new_weight, nn.get_weights()[0])
 
 
 def test_view_set_weights_permissions():
@@ -46,11 +66,10 @@ def test_view_set_weights_permissions():
     nn.set_weights(0, new_weight)
 
     new_weight[:] = 0
-    nn_weight = nn.get_weights(0)
+    nn_weight = nn.get_weights()[0]
     assert_array_equal(new_weight_copy, nn_weight)
     assert nn_weight.flags['OWNDATA']
     assert nn_weight.flags['WRITEABLE']
-
     del nn
     nn_weight[:] = 0
 
@@ -72,14 +91,15 @@ def test_set_weights_exception(rgen):
 @pt.mark.parametrize('hidden_units', TEST_HIDDEN_UNITS)
 def test_random_initialization(input_units, hidden_units):
     nn = FcClassifier(input_units, hidden_units)
-    nr_layers = len(hidden_units) + 1
 
-    for i in range(nr_layers):
-        assert_almost_equal(np.linalg.norm(nn.get_weights(i)), 0)
+    weights = nn.get_weights()
+    for w in weights:
+        assert_almost_equal(np.linalg.norm(w), 0)
 
     nn.init_random()
-    for i in range(nr_layers):
-        assert np.linalg.norm(nn.get_weights(i)) > .5
+    weights = nn.get_weights()
+    for w in weights:
+        assert np.linalg.norm(w) > .5
 
 
 @pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
@@ -87,11 +107,10 @@ def test_random_initialization(input_units, hidden_units):
 def test_predict(input_units, hidden_units, rgen):
     nn = FcClassifier(input_units, hidden_units)
     nn.init_random()
-    weights = [nn.get_weights(i) for i in range(len(hidden_units) + 1)]
+    weights = nn.get_weights()
 
     x_in = rgen.randn(input_units)
-    sigmoid = lambda x: 1 / (1 + np.exp(x))
-    x_ref = fcnn_predict(x_in, weights, sigmoid)
-    x_out = nn.predict(x_in)
-    assert_almost_equal(x_out, x_ref)
-    assert np.isscalar(x_out)
+    y_ref = fcnn_predict(x_in, weights, it.repeat(sigmoid))
+    y_hat = nn.predict(x_in)
+    assert_almost_equal(y_hat, y_ref)
+    assert np.isscalar(y_hat)
