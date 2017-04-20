@@ -81,6 +81,7 @@ public:
     // FIXME Check memory managment from pybind
     vector<ematrix_t> &get_weights() const
     {
+        // FIXME Does this give a memory leak?
         auto result = new vector<ematrix_t>(layers.size());
         for (size_t i = 0; i < layers.size(); ++i) {
             (*result)[i] = layers[i].w;
@@ -99,7 +100,7 @@ public:
     }
 
 
-    double predict(Eigen::Ref<evector_t> x_in)
+    double predict(const Eigen::Ref<const evector_t> x_in)
     {
         evector_t x_current = x_in;
         for (auto const& layer: layers) {
@@ -110,6 +111,18 @@ public:
 
         assert (x_current.size() == 1);
         return x_current[0];
+    }
+
+    vector<ematrix_t> back_propagate(const Eigen::Ref<const evector_t> x,
+                                     const double y)
+    {
+        // FIXME Does this give a memory leak?
+        auto result = new vector<ematrix_t>(layers.size());
+        for (size_t i = 0; i < layers.size(); ++i) {
+            auto w = layers[i].w;
+            (*result)[i] = ematrix_t::Zero(w.rows(), w.cols());
+        }
+        return *result;
     }
 
 
@@ -131,7 +144,9 @@ PYBIND11_PLUGIN(fcclass)
         .def("get_weights", &FcClassifier::get_weights,
              py::return_value_policy::copy)
         .def("set_weights", &FcClassifier::set_weights, "layer"_a, "weight"_a)
-        .def("predict", &FcClassifier::predict, "x_in"_a);
+        .def("predict", &FcClassifier::predict, "x_in"_a)
+        .def("back_propagate", &FcClassifier::back_propagate,
+             py::return_value_policy::copy, "x"_a, "y"_a);
 
     return m.ptr();
 }

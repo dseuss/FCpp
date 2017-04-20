@@ -114,3 +114,18 @@ def test_predict(input_units, hidden_units, rgen):
     y_hat = nn.predict(x_in)
     assert_almost_equal(y_hat, y_ref)
     assert np.isscalar(y_hat)
+
+
+@pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
+@pt.mark.parametrize('hidden_units', TEST_HIDDEN_UNITS)
+def test_backprop(input_units, hidden_units, rgen):
+    nn = FcClassifier(input_units, hidden_units)
+    nn.init_random()
+    weights = nn.get_weights()
+
+    x_in = rgen.randn(input_units)
+    y_hat = lambda weights: fcnn_predict(x_in, weights, it.repeat(sigmoid))
+    costf = lambda weights: cross_entropy(1, y_hat(weights))
+    grad_costf_ref = grad(costf)(weights)
+    grad_costf = nn.back_propagate(x_in, 1.0)
+    assert_array_almost_equal(grad_costf, grad_costf_ref)
