@@ -22,8 +22,8 @@ class get_pybind_include(object):
 
 ext_modules = [
     Extension(
-        'fcnn',
-        ['src/fcnn.cpp'],
+        'fcclass',
+        ['src/fcclass.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
@@ -89,7 +89,7 @@ class BuildExt(build_ext):
         build_ext.build_extensions(self)
 
 setup(
-    name='fcnn',
+    name='fcclass',
     version=__version__,
     author='Daniel Suess',
     author_email='daniel@dsuess.me',

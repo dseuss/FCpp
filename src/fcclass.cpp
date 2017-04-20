@@ -26,21 +26,23 @@ typedef struct NNLayer {
 } NNLayer;
 
 
-class FCNN {
+class FcClassifier {
 public:
-    // Fully connected neural network
-    FCNN(size_t n_inputs, const shape_t neurons)
-    : layers(neurons.size())
+    // A fully connected neural-network classifier.
+    // The last layer has a single output unit with sigmoid activation
+    FcClassifier(size_t input_units, const shape_t hidden_units)
+    : layers(hidden_units.size() + 1)
     {
-        const auto n_layers = neurons.size();
+        const auto n_layers = hidden_units.size() + 1;
         if(n_layers < 1) {
             throw invalid_argument("Number of layers is too small");
         }
 
         // Create temporary shapes array to unify loop below
-        size_t shapes[neurons.size() + 1];
-        shapes[0] = n_inputs;
-        copy(neurons.begin(), neurons.end(), shapes + 1);
+        size_t shapes[n_layers + 1];
+        shapes[0] = input_units;
+        shapes[n_layers] = 1;
+        copy(hidden_units.begin(), hidden_units.end(), shapes + 1);
 
         // Initialize the weights with zeros
         for (size_t n = 0; n < n_layers; ++n) {
@@ -51,15 +53,14 @@ public:
     }
 
 
-    size_t n_inputs() const { return layers[0].w.cols() - 1; }
-    size_t n_outputs() const { return layers[layers.size() - 1].w.rows(); }
-    size_t hlayers() const { return layers.size() - 1; }
+    size_t input_units() const { return layers[0].w.cols() - 1; }
+    size_t hidden_layers() const { return layers.size() - 1; }
 
 
-    shape_t neurons () const
+    shape_t hidden_units () const
     {
-        shape_t result (layers.size());
-        for (size_t i = 0; i < layers.size(); ++i) {
+        shape_t result (layers.size() - 1);
+        for (size_t i = 0; i < layers.size() - 1; ++i) {
             result[i] = layers[i].w.rows();
         }
         return result;
@@ -93,7 +94,7 @@ public:
     }
 
 
-    evector_t predict(Eigen::Ref<evector_t> x_in)
+    double predict(Eigen::Ref<evector_t> x_in)
     {
         evector_t x_current = x_in;
         for (auto const& layer: layers) {
@@ -101,7 +102,9 @@ public:
             auto b = layer.w.col(0);
             x_current = (w * x_current + b).unaryExpr(layer.activation.f);
         }
-        return x_current;
+
+        assert (x_current.size() == 1);
+        return x_current[0];
     }
 
 
@@ -110,20 +113,19 @@ private:
 };
 
 
-PYBIND11_PLUGIN(fcnn)
+PYBIND11_PLUGIN(fcclass)
 {
-    py::module m("fcnn");
+    py::module m("fcclass");
 
-    py::class_<FCNN>(m, "FCNN")
-        .def(py::init<size_t, shape_t>(), "n_inputs"_a, "neurons"_a)
-        .def_property_readonly("n_inputs", &FCNN::n_inputs)
-        .def_property_readonly("n_outputs", &FCNN::n_outputs)
-        .def_property_readonly("hlayers", &FCNN::hlayers)
-        .def_property_readonly("neurons", &FCNN::neurons)
-        .def("init_random", &FCNN::init_random, "seed"_a=0)
-        .def("get_weights", &FCNN::get_weights, "layer"_a)
-        .def("set_weights", &FCNN::set_weights, "layer"_a, "weight"_a)
-        .def("predict", &FCNN::predict, "x_in"_a);
+    py::class_<FcClassifier>(m, "FcClassifier")
+        .def(py::init<size_t, shape_t>(), "input_units"_a, "hidden_units"_a)
+        .def_property_readonly("input_units", &FcClassifier::input_units)
+        .def_property_readonly("hidden_layers", &FcClassifier::hidden_layers)
+        .def_property_readonly("hidden_units", &FcClassifier::hidden_units)
+        .def("init_random", &FcClassifier::init_random, "seed"_a=0)
+        .def("get_weights", &FcClassifier::get_weights, "layer"_a)
+        .def("set_weights", &FcClassifier::set_weights, "layer"_a, "weight"_a)
+        .def("predict", &FcClassifier::predict, "x_in"_a);
 
     return m.ptr();
 }
