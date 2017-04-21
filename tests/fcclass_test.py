@@ -19,7 +19,7 @@ TEST_INPUT_UNITS = [1, 10, 5]
 def fcnn_predict(x_in, weights, activations):
     x_current = x_in
     for w, f in zip(weights, activations):
-        x_current = f(np.dot(w[:, 1:], x_current) + w[:, 0])
+        x_current = f(np.dot(w[:, 1:], x_current) + w[:, 0, None])
     return x_current
 
 
@@ -104,16 +104,16 @@ def test_random_initialization(input_units, hidden_units):
 
 @pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
 @pt.mark.parametrize('hidden_units', TEST_HIDDEN_UNITS)
-def test_predict(input_units, hidden_units, rgen):
+@pt.mark.parametrize('nr_samples', [10])
+def test_predict(input_units, hidden_units, nr_samples, rgen):
     nn = FcClassifier(input_units, hidden_units)
     nn.init_random()
     weights = nn.get_weights()
 
-    x_in = rgen.randn(input_units)
-    y_ref = fcnn_predict(x_in, weights, it.repeat(sigmoid))
+    x_in = rgen.randn(input_units, nr_samples)
+    y_ref = fcnn_predict(x_in, weights, it.repeat(sigmoid))[0, :]
     y_hat = nn.predict(x_in)
     assert_almost_equal(y_hat, y_ref)
-    assert np.isscalar(y_hat)
 
 
 @pt.mark.parametrize('input_units', TEST_INPUT_UNITS)

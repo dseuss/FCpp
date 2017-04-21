@@ -1,3 +1,6 @@
+// FIXME Check for memory leaks and corruptions in numpy-like return types
+// FIXME Check if RowMajor order is the right thing to do everywhere
+#include <stdio.h>
 #include <assert.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
@@ -78,10 +81,8 @@ public:
     }
 
 
-    // FIXME Check memory managment from pybind
     vector<ematrix_t> &get_weights() const
     {
-        // FIXME Does this give a memory leak?
         auto result = new vector<ematrix_t>(layers.size());
         for (size_t i = 0; i < layers.size(); ++i) {
             (*result)[i] = layers[i].w;
@@ -99,24 +100,24 @@ public:
         layers[layer].w = weight;
     }
 
-
-    double predict(const Eigen::Ref<const evector_t> x_in)
+    // Note that x_in in TensorFlow like with the sample index being the last
+    // one
+    evector_t predict(const Eigen::Ref<const ematrix_t> x_in) const
     {
-        evector_t x_current = x_in;
+        ematrix_t x_current = x_in;
         for (auto const& layer: layers) {
             auto w = layer.w.block(0, 1, layer.w.rows(), layer.w.cols() - 1);
             auto b = layer.w.col(0);
-            x_current = (w * x_current + b).unaryExpr(layer.activation.f);
+            x_current = ((w * x_current).colwise() + b).unaryExpr(layer.activation.f);
         }
 
-        assert (x_current.size() == 1);
-        return x_current[0];
+        std::cout << x_current.rows() << " x " << x_current.cols() << std::endl;
+        return x_current.row(0);
     }
 
     vector<ematrix_t> back_propagate(const Eigen::Ref<const evector_t> x,
                                      const double y)
     {
-        // FIXME Does this give a memory leak?
         auto result = new vector<ematrix_t>(layers.size());
         for (size_t i = 0; i < layers.size(); ++i) {
             auto w = layers[i].w;
@@ -124,7 +125,6 @@ public:
         }
         return *result;
     }
-
 
 private:
     vector<NNLayer> layers;
