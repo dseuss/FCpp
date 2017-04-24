@@ -3,15 +3,20 @@
 
 #include <cmath>
 
+// TODO Can this be expressed as a class? There might be problems since Eigen
+//      expects function pointers.
 typedef struct ActivationFunction {
-    double (*f)(double);
-    double (*df)(double);
+    double (*f)(const double);
+    double (*df)(const double);
 } ActivationFunction;
 
 
+/*********************************
+ *  sigmoid activation function  *
+ *********************************/
 double sigmoid_f(const double x)
 {
-    return 1 / (1 + exp(x));
+    return 1 / (1 + std::exp(x));
 }
 double sigmoid_df(const double x)
 {
@@ -20,4 +25,3 @@ double sigmoid_df(const double x)
 const ActivationFunction sigmoid = { sigmoid_f, sigmoid_df };
 
 #endif /* end of include guard: ACTIVATION_HPP_ZTOI6K93 */
-

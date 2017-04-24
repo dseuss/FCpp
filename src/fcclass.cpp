@@ -5,28 +5,15 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
-#include <Eigen/Dense>
 
+#include "fcclass.hpp"
+#include "cost.hpp"
 #include "activation.hpp"
 
 
 namespace py = pybind11;
 using namespace pybind11::literals;
 using namespace std;
-
-
-typedef vector<size_t> shape_t;
-typedef Eigen::Matrix<double,
-                      Eigen::Dynamic,
-                      Eigen::Dynamic,
-                      Eigen::RowMajor> ematrix_t;
-typedef Eigen::VectorXd evector_t;
-
-
-typedef struct NNLayer {
-    ActivationFunction activation;
-    ematrix_t w;
-} NNLayer;
 
 
 class FcClassifier {
