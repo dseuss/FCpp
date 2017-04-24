@@ -77,19 +77,34 @@ void FcClassifier::set_weights(const size_t layer, Eigen::Ref<ematrix_t> weight)
 
 // Note that x_in in TensorFlow like with the sample index being the last
 // one
-evector_t
-FcClassifier::predict(const Eigen::Ref<const ematrix_t> x_in) const
+evector_t FcClassifier::predict(const Eigen::Ref<const ematrix_t> x_in) const
 {
     ematrix_t x_current = x_in;
     for (auto const& layer: layers) {
-        auto w = layer.w.block(0, 1, layer.w.rows(), layer.w.cols() - 1);
-        auto b = layer.w.col(0);
-        x_current = ((w * x_current).colwise() + b).unaryExpr(layer.activation.f);
+        x_current = compute_lin_activation(layer, x_current)
+            .unaryExpr(layer.activation.f);
     }
 
     return x_current.row(0);
 }
 
+double FcClassifier::evaluate(const Eigen::Ref<const ematrix_t> x_in,
+                              const Eigen::Ref<const evector_t> y_in) const
+{
+    if (x_in.cols() != y_in.size()) {
+        std::stringstream errmsg;
+        errmsg << "Number of samples does not match " << x_in.cols()
+            << " != " << y_in.size() << std::endl;
+        throw std::invalid_argument(errmsg.str());
+    }
+
+    auto y_hat = predict(x_in);
+    auto result = 0.0;
+    for (auto i = 0; i < y_hat.size(); ++i) {
+        result += costfun.f(y_in[i], y_hat[i]);
+    }
+    return result;
+}
 std::vector<ematrix_t>
 FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x, const double y) const
 {
@@ -99,4 +114,17 @@ FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x, const double y
         result[i] = ematrix_t::Zero(w.rows(), w.cols());
     }
     return result;
+}
+
+
+/*****************************************************************************
+ *                             Private functions                             *
+ *****************************************************************************/
+inline ematrix_t
+FcClassifier::compute_lin_activation(const NNLayer &layer,
+                                     const Eigen::Ref<const ematrix_t> x_input)
+{
+    auto w = layer.w.block(0, 1, layer.w.rows(), layer.w.cols() - 1);
+    auto b = layer.w.col(0);
+    return (w * x_input).colwise() + b;
 }

@@ -28,7 +28,7 @@ def sigmoid(x):
 
 
 def cross_entropy(p, q):
-    return - p * np.log(q)
+    return np.sum(- p * np.log(q) - (1 - p) * np.log(1 - q))
 
 
 ###############################################################################
@@ -105,7 +105,7 @@ def test_random_initialization(input_units, hidden_units):
 
 @pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
 @pt.mark.parametrize('hidden_units', TEST_HIDDEN_UNITS)
-@pt.mark.parametrize('nr_samples', [10])
+@pt.mark.parametrize('nr_samples', [1, 10])
 def test_predict(input_units, hidden_units, nr_samples, rgen):
     nn = FcClassifier(input_units, hidden_units)
     nn.init_random()
@@ -115,6 +115,23 @@ def test_predict(input_units, hidden_units, nr_samples, rgen):
     y_ref = fcnn_predict(x_in, weights, it.repeat(sigmoid))[0, :]
     y_hat = nn.predict(x_in)
     assert_almost_equal(y_hat, y_ref)
+
+
+@pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
+@pt.mark.parametrize('hidden_units', TEST_HIDDEN_UNITS)
+@pt.mark.parametrize('nr_samples', [1, 10])
+def test_evaluate(input_units, hidden_units, nr_samples, rgen):
+    nn = FcClassifier(input_units, hidden_units)
+    nn.init_random()
+    weights = nn.get_weights()
+
+    x_in = rgen.randn(input_units, nr_samples)
+    y_in = rgen.randint(2, size=nr_samples)
+    cost = nn.evaluate(x_in, y_in)
+
+    y_ref = fcnn_predict(x_in, weights, it.repeat(sigmoid))
+    cost_ref = cross_entropy(y_in, y_ref)
+    assert_almost_equal(cost, cost_ref)
 
 
 @pt.mark.skip

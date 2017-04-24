@@ -3,6 +3,7 @@
 
 #include <Eigen/Dense>
 #include "activation.hpp"
+#include "cost.hpp"
 
 
 typedef std::vector<size_t> shape_t;
@@ -38,11 +39,18 @@ public:
     // Note that x_in in TensorFlow like with the sample index being the last
     // one
     evector_t predict(const Eigen::Ref<const ematrix_t> x_in) const;
+    double evaluate(const Eigen::Ref<const ematrix_t> x_in,
+                    const Eigen::Ref<const evector_t> y_in) const;
     std::vector<ematrix_t> back_propagate(const Eigen::Ref<const evector_t> x,
                                      const double y) const;
 
 private:
     std::vector<NNLayer> layers;
+    const CostFunction costfun;
+
+    // FIXME Should we extract the layer-logic into it's own class?
+    static inline ematrix_t compute_lin_activation(const NNLayer &layer,
+                                                   const Eigen::Ref<const ematrix_t>);
 };
 
 
