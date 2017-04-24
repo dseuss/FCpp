@@ -23,7 +23,10 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'fcclass',
-        ['src/fcclass.cpp'],
+        ['src/activation.cpp',
+         'src/cost.cpp',
+         'src/fcclass.cpp',
+         'src/pyinterface.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),

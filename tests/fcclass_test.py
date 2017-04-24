@@ -123,7 +123,7 @@ def test_backprop(input_units, hidden_units, rgen):
     nn.init_random()
     weights = nn.get_weights()
 
-    x_in = rgen.randn(input_units)
+    x_in = rgen.randn(input_units, 1)
     y_hat = lambda weights: fcnn_predict(x_in, weights, it.repeat(sigmoid))
     costf = lambda weights: cross_entropy(1, y_hat(weights))
     grad_costf_ref = grad(costf)(weights)
