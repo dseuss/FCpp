@@ -32,8 +32,7 @@ public:
 
     void init_random(long seed);
 
-
-    std::vector<ematrix_t> &get_weights() const;
+    std::vector<ematrix_t> get_weights() const;
     void set_weights(const size_t layer, Eigen::Ref<ematrix_t> weight);
 
     // Note that x_in in TensorFlow like with the sample index being the last

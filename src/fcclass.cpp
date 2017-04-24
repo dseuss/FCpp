@@ -56,13 +56,13 @@ void FcClassifier::init_random(long seed)
 }
 
 
-std::vector<ematrix_t> &FcClassifier::get_weights() const
+std::vector<ematrix_t> FcClassifier::get_weights() const
 {
-    auto result = new std::vector<ematrix_t>(layers.size());
+    std::vector<ematrix_t> result(layers.size());
     for (size_t i = 0; i < layers.size(); ++i) {
-        (*result)[i] = layers[i].w;
+        result[i] = layers[i].w;
     }
-    return *result;
+    return result;
 }
 
 
@@ -93,10 +93,10 @@ FcClassifier::predict(const Eigen::Ref<const ematrix_t> x_in) const
 std::vector<ematrix_t>
 FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x, const double y) const
 {
-    auto result = new std::vector<ematrix_t>(layers.size());
+    std::vector<ematrix_t> result(layers.size());
     for (size_t i = 0; i < layers.size(); ++i) {
         auto w = layers[i].w;
-        (*result)[i] = ematrix_t::Zero(w.rows(), w.cols());
+        result[i] = ematrix_t::Zero(w.rows(), w.cols());
     }
-    return *result;
+    return result;
 }
