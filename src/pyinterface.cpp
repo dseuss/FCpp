@@ -20,9 +20,10 @@ PYBIND11_PLUGIN(fcclass)
         .def("init_random", &FcClassifier::init_random, "seed"_a=0)
         .def("get_weights", &FcClassifier::get_weights,
              py::return_value_policy::copy)
-        .def("set_weights", &FcClassifier::set_weights, "layer"_a, "weight"_a)
+        .def("set_weights", &FcClassifier::set_weights, "layer"_a, "weights"_a,
+             "biases"_a)
         .def("predict", &FcClassifier::predict, "x_in"_a)
-        .def("evaluate", &FcClassifier::evaluate, "x_in"_a, "y_in"_a)
+        .def("evaluate", &FcClassifier::evaluate, "x_in"_a, "y_in"_a);
         .def("back_propagate", &FcClassifier::back_propagate,
              py::return_value_policy::copy, "x"_a, "y"_a);
 

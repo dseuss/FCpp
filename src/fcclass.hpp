@@ -14,6 +14,9 @@ typedef Eigen::Matrix<double,
                       Eigen::RowMajor> ematrix_t;
 
 typedef Eigen::VectorXd evector_t;
+typedef std::pair<ematrix_t, evector_t> weights_biases_t;
+
+template <typename T> using ecref = Eigen::Ref<const T>;
 
 typedef struct NNLayer {
     ActivationFunction activation;
@@ -34,12 +37,13 @@ public:
 
     void init_random(long seed);
 
-    std::vector<ematrix_t> get_weights() const;
-    void set_weights(const size_t layer, Eigen::Ref<ematrix_t> weight);
+    std::vector<weights_biases_t> get_weights() const;
+    void set_weights(const size_t layer, const ecref<ematrix_t> weight,
+                     const ecref<evector_t> bias);
 
     // Note that x_in in TensorFlow like with the sample index being the last
     // one
-    evector_t predict(const Eigen::Ref<const ematrix_t> x_in) const;
+    evector_t predict(const ecref<ematrix_t> x_in) const;
     double evaluate(const Eigen::Ref<const ematrix_t> x_in,
                     const Eigen::Ref<const evector_t> y_in) const;
     std::vector<ematrix_t> back_propagate(const Eigen::Ref<const evector_t> x,

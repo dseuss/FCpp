@@ -59,29 +59,31 @@ void FcClassifier::init_random(long seed)
 }
 
 
-std::vector<ematrix_t> FcClassifier::get_weights() const
+std::vector<weights_biases_t> FcClassifier::get_weights() const
 {
-    std::vector<ematrix_t> result(layers.size());
+    std::vector<weights_biases_t> result(layers.size());
     for (size_t i = 0; i < layers.size(); ++i) {
-        auto w = layers[i].weights;
-        result[i] = ematrix_t(w.rows(), w.cols() + 1);
-        result[i].rightCols(w.cols()) = w;
-        result[i].leftCols(1) = layers[i].biases;
-
+        result[i] = weights_biases_t(layers[i].weights, layers[i].biases);
     }
     return result;
 }
 
 
-void FcClassifier::set_weights(const size_t layer, Eigen::Ref<ematrix_t> weight)
+void FcClassifier::set_weights(const size_t layer,
+                               const ecref<ematrix_t> weights,
+                               const ecref<evector_t> biases)
 {
-    if((weight.rows() != layers[layer].weights.rows()) ||
-        (weight.cols() != layers[layer].weights.cols() + 1)) {
+    if ((weights.rows() != layers[layer].weights.rows()) ||
+        (weights.cols() != layers[layer].weights.cols())) {
         // FIXME Better error message
-        throw std::invalid_argument("Set weight has wrong shape");
+        throw std::invalid_argument("Set weights have wrong shape");
     }
-    layers[layer].weights = weight.rightCols(weight.cols() - 1);
-    layers[layer].biases = weight.leftCols(1);
+    if (biases.size() != layers[layer].biases.size()) {
+        throw std::invalid_argument("Set biases have wrong shape");
+    }
+
+    layers[layer].weights = weights;
+    layers[layer].biases = biases;
 }
 
 // Note that x_in in TensorFlow like with the sample index being the last
