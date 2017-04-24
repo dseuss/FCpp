@@ -17,7 +17,8 @@ typedef Eigen::VectorXd evector_t;
 
 typedef struct NNLayer {
     ActivationFunction activation;
-    ematrix_t w;
+    ematrix_t weights;
+    evector_t biases;
 } NNLayer;
 
 
@@ -27,7 +28,7 @@ public:
     // The last layer has a single output unit with sigmoid activation
     FcClassifier(size_t input_units, const shape_t hidden_units);
 
-    size_t input_units() const { return layers[0].w.cols() - 1; }
+    size_t input_units() const { return layers[0].weights.cols(); }
     size_t hidden_layers() const { return layers.size() - 1; }
     shape_t hidden_units () const;
 
@@ -47,10 +48,6 @@ public:
 private:
     std::vector<NNLayer> layers;
     const CostFunction costfun;
-
-    // FIXME Should we extract the layer-logic into it's own class?
-    static inline ematrix_t compute_lin_activation(const NNLayer &layer,
-                                                   const Eigen::Ref<const ematrix_t>);
 };
 
 

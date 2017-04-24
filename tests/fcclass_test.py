@@ -74,7 +74,6 @@ def test_view_set_weights_permissions():
     assert_array_equal(new_weight_copy, nn_weight)
 
 
-
 def test_set_weights_exception(rgen):
     shape = (5, 1)
     nn = FcClassifier(shape[0], tuple())

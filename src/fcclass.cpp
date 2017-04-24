@@ -1,5 +1,7 @@
 // FIXME Check for memory leaks and corruptions in numpy-like return types
 // FIXME Check if RowMajor order is the right thing to do everywhere
+// TODO Store biases and weights separately?
+
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
@@ -12,9 +14,8 @@ namespace py = pybind11;
 using namespace pybind11::literals;
 
 
-
 FcClassifier::FcClassifier(size_t input_units, const shape_t hidden_units)
-: layers(hidden_units.size() + 1)
+: layers(hidden_units.size() + 1), costfun(cross_entropy)
 {
     const auto n_layers = hidden_units.size() + 1;
     if(n_layers < 1) {
@@ -29,8 +30,8 @@ FcClassifier::FcClassifier(size_t input_units, const shape_t hidden_units)
 
     // Initialize the weights with zeros
     for (size_t n = 0; n < n_layers; ++n) {
-        // +1 to accomodate biases
-        layers[n].w = ematrix_t::Zero(shapes[n + 1], shapes[n] + 1);
+        layers[n].weights = ematrix_t::Zero(shapes[n + 1], shapes[n]);
+        layers[n].biases = evector_t::Zero(shapes[n + 1]);
         layers[n].activation = sigmoid;
     }
 }
@@ -40,7 +41,7 @@ shape_t FcClassifier::hidden_units () const
 {
     shape_t result (layers.size() - 1);
     for (size_t i = 0; i < layers.size() - 1; ++i) {
-        result[i] = layers[i].w.rows();
+        result[i] = layers[i].biases.size();
     }
     return result;
 }
@@ -50,7 +51,9 @@ void FcClassifier::init_random(long seed)
 {
     srand(seed);
     for (auto& layer: layers) {
-        layer.w = ematrix_t::Random(layer.w.rows(), layer.w.cols());
+        layer.weights = ematrix_t::Random(layer.weights.rows(),
+                                          layer.weights.cols());
+        layer.biases = evector_t::Random(layer.biases.size());
     }
 
 }
@@ -60,7 +63,11 @@ std::vector<ematrix_t> FcClassifier::get_weights() const
 {
     std::vector<ematrix_t> result(layers.size());
     for (size_t i = 0; i < layers.size(); ++i) {
-        result[i] = layers[i].w;
+        auto w = layers[i].weights;
+        result[i] = ematrix_t(w.rows(), w.cols() + 1);
+        result[i].rightCols(w.cols()) = w;
+        result[i].leftCols(1) = layers[i].biases;
+
     }
     return result;
 }
@@ -68,24 +75,26 @@ std::vector<ematrix_t> FcClassifier::get_weights() const
 
 void FcClassifier::set_weights(const size_t layer, Eigen::Ref<ematrix_t> weight)
 {
-    if((weight.rows() != layers[layer].w.rows()) ||
-        (weight.cols() != layers[layer].w.cols())) {
+    if((weight.rows() != layers[layer].weights.rows()) ||
+        (weight.cols() != layers[layer].weights.cols() + 1)) {
+        // FIXME Better error message
         throw std::invalid_argument("Set weight has wrong shape");
     }
-    layers[layer].w = weight;
+    layers[layer].weights = weight.rightCols(weight.cols() - 1);
+    layers[layer].biases = weight.leftCols(1);
 }
 
 // Note that x_in in TensorFlow like with the sample index being the last
 // one
 evector_t FcClassifier::predict(const Eigen::Ref<const ematrix_t> x_in) const
 {
-    ematrix_t x_current = x_in;
+    ematrix_t activation = x_in;
     for (auto const& layer: layers) {
-        x_current = compute_lin_activation(layer, x_current)
-            .unaryExpr(layer.activation.f);
+        auto lin_activation = (layer.weights * activation).colwise() + layer.biases;
+        activation = lin_activation.unaryExpr(layer.activation.f);
     }
 
-    return x_current.row(0);
+    return activation.row(0);
 }
 
 double FcClassifier::evaluate(const Eigen::Ref<const ematrix_t> x_in,
@@ -105,26 +114,32 @@ double FcClassifier::evaluate(const Eigen::Ref<const ematrix_t> x_in,
     }
     return result;
 }
+
 std::vector<ematrix_t>
-FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x, const double y) const
+FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x_input,
+                             const double y_input) const
 {
-    std::vector<ematrix_t> result(layers.size());
-    for (size_t i = 0; i < layers.size(); ++i) {
-        auto w = layers[i].w;
-        result[i] = ematrix_t::Zero(w.rows(), w.cols());
+    // Foward propagate to compute activations
+    evector_t activations [layers.size()];
+    evector_t lin_activations [layers.size()];
+
+    lin_activations[0] = layers[0].weights * x_input + layers[0].biases;
+    activations[0] = lin_activations[0].unaryExpr(layers[0].activation.f);
+
+    for (size_t i = 1; i < layers.size(); ++i) {
+        lin_activations[i] = layers[i].weights * activations[i - 1] + layers[i].biases;
+        activations[i] = lin_activations[i].unaryExpr(layers[i].activation.f);
     }
+
+    std::vector<ematrix_t> result(layers.size());
+    // size_t i = layers.size() - 1;
+    // ematrix_t buf = costfun.d2f(y_input, activations[i])
+    // for (size_t i = layers.size() - 1; i >= 0; --i) {
+    //     buf *= layers[i].activation.df(lin_activations[i]);
+    //     evector_t a_padded = evector_t(actiations[i].size);
+    //     a_padded = 1;
+
+    //     result[i] =
+    // }
     return result;
-}
-
-
-/*****************************************************************************
- *                             Private functions                             *
- *****************************************************************************/
-inline ematrix_t
-FcClassifier::compute_lin_activation(const NNLayer &layer,
-                                     const Eigen::Ref<const ematrix_t> x_input)
-{
-    auto w = layer.w.block(0, 1, layer.w.rows(), layer.w.cols() - 1);
-    auto b = layer.w.col(0);
-    return (w * x_input).colwise() + b;
 }
