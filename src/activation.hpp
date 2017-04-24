@@ -24,4 +24,19 @@ double sigmoid_df(const double x)
 }
 const ActivationFunction sigmoid = { sigmoid_f, sigmoid_df };
 
+
+/******************************
+ *  ReLu activation function  *
+ ******************************/
+double relu_f(const double x)
+{
+    return (x > 0) ? x : 0;
+}
+double relu_df(const double x)
+{
+    return (x > 0) ? 1 : 0;
+}
+const ActivationFunction relu = { relu_f, relu_df };
+
+
 #endif /* end of include guard: ACTIVATION_HPP_ZTOI6K93 */
