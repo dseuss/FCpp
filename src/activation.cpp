@@ -6,7 +6,7 @@
  *********************************/
 double sigmoid_f(const double x)
 {
-    return 1 / (1 + std::exp(x));
+    return 1 / (1 + std::exp(-x));
 }
 double sigmoid_df(const double x)
 {

@@ -1,6 +1,7 @@
 // FIXME Check for memory leaks and corruptions in numpy-like return types
 // FIXME Check if RowMajor order is the right thing to do everywhere
 // TODO Store biases and weights separately?
+// TODO Regularization
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
@@ -117,7 +118,7 @@ double FcClassifier::evaluate(const Eigen::Ref<const ematrix_t> x_in,
     return result;
 }
 
-std::vector<ematrix_t>
+std::vector<weights_biases_t>
 FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x_input,
                              const double y_input) const
 {
@@ -133,15 +134,18 @@ FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x_input,
         activations[i] = lin_activations[i].unaryExpr(layers[i].activation.f);
     }
 
-    std::vector<ematrix_t> result(layers.size());
-    // size_t i = layers.size() - 1;
-    // ematrix_t buf = costfun.d2f(y_input, activations[i])
-    // for (size_t i = layers.size() - 1; i >= 0; --i) {
-    //     buf *= layers[i].activation.df(lin_activations[i]);
-    //     evector_t a_padded = evector_t(actiations[i].size);
-    //     a_padded = 1;
+    // Back propagate to compute gradients
+    std::vector<weights_biases_t> gradients(layers.size());
+    evector_t buf (1);
+    buf[0] = costfun.d2f(y_input, activations[layers.size() - 1][0]);
 
-    //     result[i] =
-    // }
-    return result;
+    for (size_t i = layers.size() - 1; i > 0; --i) {
+        buf.array() *= lin_activations[i].unaryExpr(layers[i].activation.df).array();
+        gradients[i] = weights_biases_t(buf * activations[i - 1].transpose(), buf);
+        buf = layers[i].weights.transpose() * buf;
+    }
+    buf = buf.array() * lin_activations[0].unaryExpr(layers[0].activation.df).array();
+    gradients[0] = weights_biases_t(buf * x_input.transpose(), buf);
+
+    return gradients;
 }

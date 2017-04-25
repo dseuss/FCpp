@@ -1,7 +1,9 @@
 #ifndef FCCLASS_HPP_EVZ2HTSU
 #define FCCLASS_HPP_EVZ2HTSU
 
+#include <vector>
 #include <Eigen/Dense>
+
 #include "activation.hpp"
 #include "cost.hpp"
 
@@ -46,8 +48,8 @@ public:
     evector_t predict(const ecref<ematrix_t> x_in) const;
     double evaluate(const Eigen::Ref<const ematrix_t> x_in,
                     const Eigen::Ref<const evector_t> y_in) const;
-    std::vector<ematrix_t> back_propagate(const Eigen::Ref<const evector_t> x,
-                                     const double y) const;
+    std::vector<weights_biases_t> back_propagate(const Eigen::Ref<const evector_t> x,
+                       const double y) const;
 
 private:
     std::vector<NNLayer> layers;

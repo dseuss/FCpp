@@ -24,7 +24,7 @@ def fcnn_predict(x_in, weights, biases, activations):
 
 
 def sigmoid(x):
-    return 1 / (1 + np.exp(x))
+    return 1 / (1 + np.exp(-x))
 
 
 def cross_entropy(p, q):
@@ -157,17 +157,28 @@ def test_evaluate(input_units, hidden_units, nr_samples, rgen):
     assert_almost_equal(cost, cost_ref)
 
 
-@pt.mark.skip
 @pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
 @pt.mark.parametrize('hidden_units', TEST_HIDDEN_UNITS)
 def test_backprop(input_units, hidden_units, rgen):
     nn = FcClassifier(input_units, hidden_units)
     nn.init_random()
-    weights = nn.get_weights()
+    parameters = nn.get_weights()
+    weights = list(w for w, _ in parameters)
+    biases = list(b for _, b in parameters)
 
     x_in = rgen.randn(input_units, 1)
-    y_hat = lambda weights: fcnn_predict(x_in, weights, it.repeat(sigmoid))
-    costf = lambda weights: cross_entropy(1, y_hat(weights))
+    grads = nn.back_propagate(x_in, 1.0)
+    grad_w = [w for w, _ in grads]
+    grad_b = [b for _, b in grads]
+
+    y_hat = lambda weights: fcnn_predict(x_in, weights, biases, it.repeat(sigmoid))
+    costf = lambda weights: cross_entropy(1.0, y_hat(weights))
     grad_costf_ref = grad(costf)(weights)
-    grad_costf = nn.back_propagate(x_in, 1.0)
-    assert_array_almost_equal(grad_costf, grad_costf_ref)
+    for w, w_ref in zip(grad_w, grad_costf_ref):
+        assert_array_almost_equal(w, w_ref)
+
+    y_hat = lambda biases: fcnn_predict(x_in, weights, biases, it.repeat(sigmoid))
+    costf = lambda biases: cross_entropy(1, y_hat(biases))
+    grad_costf_ref = grad(costf)(biases)
+    for b, b_ref in zip(grad_b, grad_costf_ref):
+        assert_array_almost_equal(b, b_ref)
