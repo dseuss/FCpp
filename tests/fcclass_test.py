@@ -119,7 +119,6 @@ def test_random_initialization(input_units, hidden_units):
     weights = nn.get_weights()
     for w, b in weights:
         assert np.linalg.norm(w) > .5
-        assert np.linalg.norm(b) > .01
 
 
 @pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
@@ -129,8 +128,10 @@ def test_predict(input_units, hidden_units, nr_samples, rgen):
     nn = FcClassifier(input_units, hidden_units)
     nn.init_random()
     parameters = nn.get_weights()
-    weights = list(w for w, _ in parameters)
-    biases = list(b for _, b in parameters)
+    weights = list(rgen.randn(*w.shape) for w, _ in parameters)
+    biases = list(np.zeros(b.shape) for _, b in parameters)
+    for n, (w, b) in enumerate(zip(weights, biases)):
+        nn.set_weights(n, w, b)
 
     x_in = rgen.randn(input_units, nr_samples)
     y_ref = fcnn_predict(x_in, weights, biases, it.repeat(sigmoid))[0, :]
@@ -193,11 +194,11 @@ def test_backprop(input_units, hidden_units, rgen):
 def test_train(input_units, hidden_units, batch_size, nr_samples, rgen):
     nn = FcClassifier(input_units, hidden_units)
     nn.init_random()
-    x_in = rgen.randn(input_units, nr_samples)
+    x_in = rgen.randn(nr_samples, input_units)
     y_in = rgen.randint(2, size=nr_samples)
 
-    cost_old = nn.evaluate(x_in, y_in)
-    cost_new = nn.train(x_in, y_in, learning_rate=0.05, nr_epochs=1,
-                        batch_size=batch_size)
+    cost_old = nn.evaluate(x_in.T, y_in)
+    nn.train(x_in, y_in, learning_rate=0.0005, nr_epochs=1,
+             batch_size=batch_size)
+    cost_new = nn.evaluate(x_in.T, y_in)
     assert cost_old > cost_new
-    assert_almost_equal(cost_new, nn.evaluate(x_in, y_in))

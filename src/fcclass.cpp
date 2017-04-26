@@ -3,10 +3,17 @@
 // FIXME I still don't like the way weights/biasses are handled
 // TODO Regularization
 // TODO Batch gradient computation
+// FIXME Unify interface for x_input; right now its either an Eigen matrix or
+//       a list of vectors
+// FIXME There are many places that could benefit from using a zip iterator
+// FIXME Needs a better random initialization
 
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <algorithm>
+#include <iostream>
+#include <random>
 
 #include "fcclass.hpp"
 // #include "cost.hpp"
@@ -142,8 +149,80 @@ std::pair<double, std::vector<weights_biases_t>> FcClassifier::back_propagate(
 }
 
 double FcClassifier::train(const std::vector<ecref<evector_t>> x_input,
-             const std::vector<double> y_input, const double learning_rate,
-             const unsigned int nr_epochs, const unsigned int batch_size)
-{
-  return 0.0;
+                           const std::vector<double> y_input,
+                           const double learning_rate,
+                           const unsigned int nr_epochs,
+                           const unsigned int batch_size,
+                           const unsigned int seed) {
+  auto nr_samples = x_input.size();
+  if (nr_samples != y_input.size()) {
+    std::stringstream errmsg;
+    errmsg << "Number of samples does not match " << nr_samples
+           << " != " << y_input.size() << std::endl;
+    throw std::invalid_argument(errmsg.str());
+  }
+
+  if (nr_epochs < 1) {
+    // TODO Just evaluate nn and return cost
+    throw std::invalid_argument("nr_epochs should be larger than 0");
+  }
+
+  std::vector<size_t> indices(nr_samples);
+  std::iota(indices.begin(), indices.end(), 0);
+  auto rgen = std::default_random_engine(seed);
+  auto cost_train = 0.0;
+
+  for (size_t epoch = 0; epoch < nr_epochs; ++epoch) {
+    std::shuffle(indices.begin(), indices.end(), rgen);
+    cost_train =
+        train_epoch(x_input, y_input, indices, learning_rate, batch_size);
+  }
+
+  return cost_train;
+}
+
+double FcClassifier::train_epoch(const std::vector<ecref<evector_t>> x_input,
+                                 const std::vector<double> y_input,
+                                 const std::vector<size_t> indices,
+                                 const double learning_rate,
+                                 const unsigned int batch_size) {
+  auto cost = 0.0;
+  size_t batch_counter = 0;
+  const size_t nr_layers = layers.size();
+
+  // Initilaize the temporary gradients
+  weights_biases_t gradients[nr_layers];
+  for (size_t i = 0; i < nr_layers; ++i) {
+    gradients[i].first =
+        ematrix_t::Zero(layers[i].weights.rows(), layers[i].weights.cols());
+    gradients[i].second = evector_t::Zero(layers[i].biases.size());
+  }
+
+  for (size_t n = 0; n < indices.size(); ++n) {
+    const auto index = indices[n];
+    auto result = back_propagate(x_input[index], y_input[index]);
+    cost += result.first;
+
+    for (size_t i = 0; i < nr_layers; ++i) {
+      gradients[i].first += result.second[i].first;
+      gradients[i].second += result.second[i].second;
+    }
+    batch_counter++;
+
+    if ((batch_counter >= batch_size) or (n >= indices.size() - 1)) {
+      for (size_t i = 0; i < nr_layers; ++i) {
+        // Update weights
+        const auto alpha = learning_rate / batch_counter;
+        layers[i].weights -= alpha * gradients[i].first;
+        layers[i].biases -= alpha * gradients[i].second;
+
+        // Reset temporary variables
+        gradients[i].first.setZero();
+        gradients[i].second.setZero();
+      }
+      batch_counter = 0;
+    }
+  }
+
+  return cost;
 }

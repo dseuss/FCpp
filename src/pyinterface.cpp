@@ -26,7 +26,7 @@ PYBIND11_PLUGIN(fcclass) {
            py::return_value_policy::copy, "x"_a, "y"_a)
       .def("train", &FcClassifier::train, py::return_value_policy::copy, "x"_a,
            "y"_a, "learning_rate"_a = 0.05, "nr_epochs"_a = 1,
-           "batch_size"_a = 32);
+           "batch_size"_a = 32, "seed"_a = 0);
 
   return m.ptr();
 }

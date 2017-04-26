@@ -48,15 +48,18 @@ class FcClassifier {
   std::pair<double, std::vector<weights_biases_t>> back_propagate(
       const ecref<evector_t> x, const double y) const;
 
-  double train(const std::vector<ecref<evector_t>>, const std::vector<double>,
-               const double, const unsigned int, const unsigned int);
+  double train(const std::vector<ecref<evector_t>> x_input,
+               const std::vector<double> y_input, const double learning_rate,
+               const unsigned int nr_epochs, const unsigned int batch_size,
+               const unsigned int seed);
 
  private:
   std::vector<NNLayer> layers;
   const CostFunction costfun;
-  double train_epoch(const std::vector<const ecref<evector_t>>,
-                     const std::vector<double>, const std::vector<size_t>,
-                     const double, const unsigned int);
+  double train_epoch(const std::vector<ecref<evector_t>> x_input,
+                     const std::vector<double> y_input,
+                     const std::vector<size_t> indices,
+                     const double learning_rate, const unsigned int batch_size);
 };
 
 #endif /* end of include guard: FCCLASS_HPP_EVZ2HTSU */
