@@ -167,7 +167,7 @@ def test_backprop(input_units, hidden_units, rgen):
     biases = list(b for _, b in parameters)
 
     x_in = rgen.randn(input_units, 1)
-    grads = nn.back_propagate(x_in, 1.0)
+    cost, grads = nn.back_propagate(x_in, 1.0)
     grad_w = [w for w, _ in grads]
     grad_b = [b for _, b in grads]
 
@@ -182,3 +182,5 @@ def test_backprop(input_units, hidden_units, rgen):
     grad_costf_ref = grad(costf)(biases)
     for b, b_ref in zip(grad_b, grad_costf_ref):
         assert_array_almost_equal(b, b_ref)
+
+    assert_almost_equal(cost, costf(biases))

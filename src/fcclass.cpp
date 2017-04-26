@@ -1,7 +1,8 @@
 // FIXME Check for memory leaks and corruptions in numpy-like return types
 // FIXME Check if RowMajor order is the right thing to do everywhere
-// TODO Store biases and weights separately?
+// FIXME I still don't like the way weights/biasses are handled
 // TODO Regularization
+// TODO Batch gradient computation
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
@@ -118,7 +119,7 @@ double FcClassifier::evaluate(const Eigen::Ref<const ematrix_t> x_in,
     return result;
 }
 
-std::vector<weights_biases_t>
+std::pair<double, std::vector<weights_biases_t>>
 FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x_input,
                              const double y_input) const
 {
@@ -147,5 +148,7 @@ FcClassifier::back_propagate(const Eigen::Ref<const evector_t> x_input,
     buf = buf.array() * lin_activations[0].unaryExpr(layers[0].activation.df).array();
     gradients[0] = weights_biases_t(buf * x_input.transpose(), buf);
 
-    return gradients;
+    double cost = costfun.f(y_input, activations[layers.size() - 1][0]);
+    const std::pair<double, std::vector<weights_biases_t>> result (cost, gradients);
+    return result;
 }
