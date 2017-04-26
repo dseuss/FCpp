@@ -43,10 +43,10 @@ class FcClassifier {
   // Note that x_in in TensorFlow like with the sample index being the last
   // one
   evector_t predict(const ecref<ematrix_t> x_in) const;
-  double evaluate(const Eigen::Ref<const ematrix_t> x_in,
-                  const Eigen::Ref<const evector_t> y_in) const;
+  double evaluate(const ecref<ematrix_t> x_in,
+                  const ecref<evector_t> y_in) const;
   std::pair<double, std::vector<weights_biases_t>> back_propagate(
-      const Eigen::Ref<const evector_t> x, const double y) const;
+      const ecref<evector_t> x, const double y) const;
 
  private:
   std::vector<NNLayer> layers;

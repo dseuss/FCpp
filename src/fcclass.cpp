@@ -78,7 +78,7 @@ void FcClassifier::set_weights(const size_t layer,
 
 // Note that x_in in TensorFlow like with the sample index being the last
 // one
-evector_t FcClassifier::predict(const Eigen::Ref<const ematrix_t> x_in) const {
+evector_t FcClassifier::predict(const ecref<ematrix_t> x_in) const {
   ematrix_t activation = x_in;
   for (auto const &layer : layers) {
     auto lin_activation = (layer.weights * activation).colwise() + layer.biases;
@@ -88,8 +88,8 @@ evector_t FcClassifier::predict(const Eigen::Ref<const ematrix_t> x_in) const {
   return activation.row(0);
 }
 
-double FcClassifier::evaluate(const Eigen::Ref<const ematrix_t> x_in,
-                              const Eigen::Ref<const evector_t> y_in) const {
+double FcClassifier::evaluate(const ecref<ematrix_t> x_in,
+                              const ecref<evector_t> y_in) const {
   if (x_in.cols() != y_in.size()) {
     std::stringstream errmsg;
     errmsg << "Number of samples does not match " << x_in.cols()
@@ -106,7 +106,7 @@ double FcClassifier::evaluate(const Eigen::Ref<const ematrix_t> x_in,
 }
 
 std::pair<double, std::vector<weights_biases_t>> FcClassifier::back_propagate(
-    const Eigen::Ref<const evector_t> x_input, const double y_input) const {
+    const ecref<evector_t> x_input, const double y_input) const {
   // Foward propagate to compute activations
   evector_t activations[layers.size()];
   evector_t lin_activations[layers.size()];
