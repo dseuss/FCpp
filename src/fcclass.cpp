@@ -140,3 +140,10 @@ std::pair<double, std::vector<weights_biases_t>> FcClassifier::back_propagate(
                                                                 gradients);
   return result;
 }
+
+double FcClassifier::train(const std::vector<ecref<evector_t>> x_input,
+             const std::vector<double> y_input, const double learning_rate,
+             const unsigned int nr_epochs, const unsigned int batch_size)
+{
+  return 0.0;
+}

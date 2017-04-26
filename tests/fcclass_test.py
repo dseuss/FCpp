@@ -184,3 +184,20 @@ def test_backprop(input_units, hidden_units, rgen):
         assert_array_almost_equal(b, b_ref)
 
     assert_almost_equal(cost, costf(biases))
+
+
+@pt.mark.parametrize('input_units', TEST_INPUT_UNITS)
+@pt.mark.parametrize('hidden_units', TEST_HIDDEN_UNITS)
+@pt.mark.parametrize('batch_size', [1, 10])
+@pt.mark.parametrize('nr_samples', [1, 10, 97])
+def test_train(input_units, hidden_units, batch_size, nr_samples, rgen):
+    nn = FcClassifier(input_units, hidden_units)
+    nn.init_random()
+    x_in = rgen.randn(input_units, nr_samples)
+    y_in = rgen.randint(2, size=nr_samples)
+
+    cost_old = nn.evaluate(x_in, y_in)
+    cost_new = nn.train(x_in, y_in, learning_rate=0.05, nr_epochs=1,
+                        batch_size=batch_size)
+    assert cost_old > cost_new
+    assert_almost_equal(cost_new, nn.evaluate(x_in, y_in))

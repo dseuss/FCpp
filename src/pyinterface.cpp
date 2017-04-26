@@ -23,7 +23,10 @@ PYBIND11_PLUGIN(fcclass) {
       .def("predict", &FcClassifier::predict, "x_in"_a)
       .def("evaluate", &FcClassifier::evaluate, "x_in"_a, "y_in"_a)
       .def("back_propagate", &FcClassifier::back_propagate,
-           py::return_value_policy::copy, "x"_a, "y"_a);
+           py::return_value_policy::copy, "x"_a, "y"_a)
+      .def("train", &FcClassifier::train, py::return_value_policy::copy, "x"_a,
+           "y"_a, "learning_rate"_a = 0.05, "nr_epochs"_a = 1,
+           "batch_size"_a = 32);
 
   return m.ptr();
 }
